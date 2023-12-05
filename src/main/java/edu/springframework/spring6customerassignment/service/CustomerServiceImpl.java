@@ -1,8 +1,13 @@
 package edu.springframework.spring6customerassignment.service;
 
-import edu.springframework.spring6customerassignment.exception.NotFoundException;
-import edu.springframework.spring6customerassignment.model.Customer;
+import edu.springframework.spring6customerassignment.entities.Customer;
+import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
+import edu.springframework.spring6customerassignment.mappers.CustomerMapperImpl;
+import edu.springframework.spring6customerassignment.model.CustomerDTO;
+import edu.springframework.spring6customerassignment.repositories.CustomerRepository;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.mapstruct.Mapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -10,91 +15,118 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
+//@AllArgsConstructor
 @Service
 public class CustomerServiceImpl implements CustomerService{
+    CustomerRepository customerRepository;
+    CustomerMapper customerMapper;
 
-    private Map<UUID, Customer> customers = new HashMap<>();
+    public CustomerServiceImpl(CustomerRepository customerRepository, CustomerMapper customerMapper) {
+        this.customerRepository = customerRepository;
+        this.customerMapper = customerMapper;
 
-    public CustomerServiceImpl() {
         Customer customer1 = Customer.builder()
                 .customerName("John Doe")
-                .customerId(UUID.randomUUID())
-                .version(1)
                 .createdDate(LocalDateTime.now())
                 .lastModifiedDate(LocalDateTime.now())
                 .build();
 
         Customer customer2 = Customer.builder()
                 .customerName("Donald Trump")
-                .customerId(UUID.randomUUID())
-                .version(1)
                 .createdDate(LocalDateTime.now())
                 .lastModifiedDate(LocalDateTime.now())
                 .build();
 
         Customer customer3 = Customer.builder()
                 .customerName("Magnus Danielsson")
-                .customerId(UUID.randomUUID())
-                .version(1)
                 .createdDate(LocalDateTime.now())
                 .lastModifiedDate(LocalDateTime.now())
                 .build();
 
-        customers.put(customer1.getCustomerId(), customer1);
-        customers.put(customer2.getCustomerId(), customer2);
+        Customer customer4 = Customer.builder()
+                .customerName("The King")
+                .createdDate(LocalDateTime.now())
+                .lastModifiedDate(LocalDateTime.now())
+                .build();
 
-        log.info("CustomerService: customers: " + customers);
+        customer1= this.customerRepository.save(customer1);
+        log.info("Customer entity #1 " + customer1.getCustomerName());
+
+        customer2= this.customerRepository.save(customer2);
+        log.info("Customer entity #2 " + customer2.getCustomerName());
+
+        customer3= this.customerRepository.save(customer3);
+        log.info("Customer entity #3 " + customer3.getCustomerName());
+
+        customer4= this.customerRepository.save(customer4);
+        log.info("Customer entity #4 " + customer4.getCustomerName());
+
+        List<Customer> customerList = customerRepository.findAll();
+        customerList.forEach(c -> System.out.println("Customer name -> " + c.toString()));
     }
 
     @Override
-    public List<Customer> findAll() {
+    public List<CustomerDTO> findAll() {
         log.info("CustomerService: Getting all customers");
-        return new ArrayList<>(customers.values());
+        List<Customer> customerList = customerRepository.findAll();
+        List<CustomerDTO> customerDTOList = new ArrayList<>();
+        for (Customer c : customerList) {
+            customerDTOList.add(customerMapper.customerToCustomerDto(c));
+        }
+        return customerDTOList;
     }
 
     @Override
-    public Customer findById(UUID id) {
+    public Optional<CustomerDTO> findById(UUID id) {
         log.info("CustomerService: Getting customer by id: " + id);
-        return customers.get(id);
+        Optional<Customer> customer = customerRepository.findById(id);
+        CustomerDTO customerDTO = customerMapper.customerToCustomerDto(customer.orElse(null));
+        return Optional.ofNullable(customerDTO);
     }
 
     @Override
-    public Customer save(Customer customer) {
-        Customer savedCustomer = Customer.builder()
-                .customerName(customer.getCustomerName())
-                .customerId(UUID.randomUUID())
-                .version(1)
+    public CustomerDTO save(CustomerDTO customerDto) {
+        CustomerDTO newCustomerDto = CustomerDTO.builder()
+                .customerName(customerDto.getCustomerName())
                 .createdDate(LocalDateTime.now())
                 .lastModifiedDate(LocalDateTime.now())
                 .build();
 
-        customers.put(savedCustomer.getCustomerId(), savedCustomer);
-        log.info("CustomerService: Saving customer: " + savedCustomer);
+        Customer customer = customerMapper.customerDtoToCustomer(newCustomerDto);
 
-        return savedCustomer;
+        Customer persistedCustomer = customerRepository.save(customer);
+        log.info("CustomerService: Persisted customer: " + persistedCustomer);
 
+        newCustomerDto = customerMapper.customerToCustomerDto(persistedCustomer);
+        return newCustomerDto;
     }
 
     @Override
-    public void update(UUID uuid, Customer customer) {
-        Customer existing = customers.get(uuid);
-        existing.setCustomerName(customer.getCustomerName());
-        existing.setLastModifiedDate(LocalDateTime.now());
-        log.info("CustomerService: Updating customer: " + existing);
+    public void update(UUID uuid, CustomerDTO customerDto) {
+        Optional<Customer> existing = customerRepository.findById(uuid);
+        Customer existingCustomer = existing.get();
+        existingCustomer.setCustomerName(customerDto.getCustomerName());
+        existingCustomer.setLastModifiedDate(LocalDateTime.now());
+        existingCustomer = customerRepository.save(existingCustomer);
+        log.info("CustomerService: Updating customer: " + existingCustomer);
     }
 
     @Override
     public void deleteById(UUID uuid) {
-        Customer customer = customers.remove(uuid);
-        log.info("CustomerService: Deleting customer: " + customer);
+        customerRepository.deleteById(uuid);
+        log.info("CustomerService: Deleting customer");
     }
 
     @Override
-    public void patchCustomer(UUID customerId, Customer customer) {
-        Customer existing = customers.get(customerId);
+    public void patchCustomer(UUID customerId, CustomerDTO customer) {
+        Optional<Customer> existing = customerRepository.findById(customerId);
+        Customer existingCustomer = existing.get();
+
         if(StringUtils.hasText(customer.getCustomerName())){
-           existing.setCustomerName(customer.getCustomerName());
-           existing.setLastModifiedDate(LocalDateTime.now());
+           existingCustomer.setCustomerName(customer.getCustomerName());
+           existingCustomer.setLastModifiedDate(LocalDateTime.now());
+           existingCustomer = customerRepository.save(existingCustomer);
+           log.info("Updated customer: " + existingCustomer);
         }
 
     }

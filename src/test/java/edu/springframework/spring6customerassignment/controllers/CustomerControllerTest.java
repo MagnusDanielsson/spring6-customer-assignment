@@ -1,8 +1,9 @@
 package edu.springframework.spring6customerassignment.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.springframework.spring6customerassignment.model.Customer;
+import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
+import edu.springframework.spring6customerassignment.model.CustomerDTO;
+import edu.springframework.spring6customerassignment.repositories.CustomerRepository;
 import edu.springframework.spring6customerassignment.service.CustomerService;
 import edu.springframework.spring6customerassignment.service.CustomerServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,23 +39,29 @@ class CustomerControllerTest {
     ObjectMapper objectMapper;
 
     @MockBean
+    CustomerRepository customerRepository;
+
+    @MockBean
+    CustomerMapper customerMapper;
+
+    @MockBean
     CustomerService customerService;
 
     @Captor
     ArgumentCaptor<UUID> uuidArgumentCaptor;
 
     @Captor
-    ArgumentCaptor<Customer> customerArgumentCaptor;
+    ArgumentCaptor<CustomerDTO> customerArgumentCaptor;
     CustomerServiceImpl customerServiceImpl;
 
     @BeforeEach
     void setUp() {
-        customerServiceImpl = new CustomerServiceImpl();
+        customerServiceImpl = new CustomerServiceImpl(customerRepository, customerMapper);
     }
 
     @Test
     void testPatchCustomer() throws Exception {
-        Customer customer = customerServiceImpl.findAll().get(0);
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
 
         HashMap<String, String> customerMap = new HashMap<>();
         customerMap.put("customerName", "Carl Michael Bellman");
@@ -74,11 +82,11 @@ class CustomerControllerTest {
 
     @Test
     void testCreateCustomer() throws Exception {
-        Customer customer = customerServiceImpl.findAll().get(0);
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
         customer.setCustomerId(null);
         customer.setVersion(null);
 
-        given(customerService.save(any(Customer.class))).willReturn(customerServiceImpl.findAll().get(1));
+        given(customerService.save(any(CustomerDTO.class))).willReturn(customerServiceImpl.findAll().get(1));
 
         mockMvc.perform(post("/api/v1/customer")
                         .accept(MediaType.APPLICATION_JSON)
@@ -88,14 +96,14 @@ class CustomerControllerTest {
                         .andExpect(header().exists("Location"));
 
         verify(customerService).save(customerArgumentCaptor.capture());
-        Customer captorValue = customerArgumentCaptor.getValue();
+        CustomerDTO captorValue = customerArgumentCaptor.getValue();
         assertThat(captorValue.getCustomerId()).isNull();
         assertThat(captorValue.getVersion()).isNull();
     }
 
     @Test
     void testUpdateCustomer() throws Exception {
-        Customer customer = customerServiceImpl.findAll().get(0);
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
 
         mockMvc.perform(put("/api/v1/customer/" + customer.getCustomerId())
                         .accept(MediaType.APPLICATION_JSON)
@@ -103,7 +111,7 @@ class CustomerControllerTest {
                         .content(objectMapper.writeValueAsString(customer)))
                         .andExpect(status().isOk());
 
-        verify(customerService).update(any(UUID.class), any(Customer.class));
+        verify(customerService).update(any(UUID.class), any(CustomerDTO.class));
 
     }
 
@@ -127,9 +135,9 @@ class CustomerControllerTest {
     @Test
     void getCustomerById() throws Exception {
 
-        Customer customer = customerServiceImpl.findAll().get(0);
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
 
-        given(customerService.findById(customer.getCustomerId())).willReturn(customer);
+        given(customerService.findById(customer.getCustomerId())).willReturn(Optional.of(customer));
 
         mockMvc.perform(get("/api/v1/customer/" + customer.getCustomerId())
                 .accept(MediaType.APPLICATION_JSON))
@@ -144,7 +152,7 @@ class CustomerControllerTest {
 
     @Test
     void testDeleteCustomer() throws Exception {
-        Customer customer = customerServiceImpl.findAll().get(0);
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
 
         mockMvc.perform(delete("/api/v1/customer/" + customer.getCustomerId())
                         .accept(MediaType.APPLICATION_JSON)

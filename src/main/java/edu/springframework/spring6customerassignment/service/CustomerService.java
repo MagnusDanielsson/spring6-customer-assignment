@@ -1,21 +1,21 @@
 package edu.springframework.spring6customerassignment.service;
 
-import edu.springframework.spring6customerassignment.model.Customer;
+import edu.springframework.spring6customerassignment.model.CustomerDTO;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CustomerService {
-    List<Customer> findAll();
-    Customer findById(UUID id);
+    List<CustomerDTO> findAll();
+    Optional<CustomerDTO> findById(UUID id);
 
-    Customer save(Customer customer);
+    CustomerDTO save(CustomerDTO customer);
 
-    void update(UUID uuid, Customer customer);
+    void update(UUID uuid, CustomerDTO customer);
 
     void deleteById(UUID uuid);
 
-    void patchCustomer(UUID customerId, Customer customer);
+    void patchCustomer(UUID customerId, CustomerDTO customer);
 
 }

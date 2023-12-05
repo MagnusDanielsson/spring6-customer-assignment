@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 @Builder
 @Data
-public class Customer {
+public class CustomerDTO {
     private String customerName;
     private UUID customerId;
     private Integer version;
