@@ -1,9 +1,11 @@
 package edu.springframework.spring6customerassignment.repositories;
 
 import edu.springframework.spring6customerassignment.entities.Customer;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.annotation.Rollback;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +17,8 @@ class CustomerRepositoryTest {
     @Autowired
     CustomerRepository customerRepository;
 
+    @Rollback
+    @Transactional
     @Test
     void testSaveCustomer() {
         Customer saveCustomer =

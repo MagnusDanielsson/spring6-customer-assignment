@@ -1,6 +1,7 @@
 package edu.springframework.spring6customerassignment.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.springframework.spring6customerassignment.entities.Customer;
 import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
 import edu.springframework.spring6customerassignment.model.CustomerDTO;
 import edu.springframework.spring6customerassignment.repositories.CustomerRepository;
@@ -34,29 +35,19 @@ class CustomerControllerTest {
 
     @Autowired
     MockMvc mockMvc;
-
     @Autowired
     ObjectMapper objectMapper;
-
-    @MockBean
-    CustomerRepository customerRepository;
-
-    @MockBean
-    CustomerMapper customerMapper;
-
     @MockBean
     CustomerService customerService;
-
     @Captor
     ArgumentCaptor<UUID> uuidArgumentCaptor;
-
     @Captor
     ArgumentCaptor<CustomerDTO> customerArgumentCaptor;
     CustomerServiceImpl customerServiceImpl;
 
     @BeforeEach
     void setUp() {
-        customerServiceImpl = new CustomerServiceImpl(customerRepository, customerMapper);
+       customerServiceImpl = new CustomerServiceImpl();
     }
 
     @Test
@@ -66,18 +57,18 @@ class CustomerControllerTest {
         HashMap<String, String> customerMap = new HashMap<>();
         customerMap.put("customerName", "Carl Michael Bellman");
 
+        given(customerService.patchCustomer(any(), any())).willReturn(Optional.of(customer));
+
         mockMvc.perform(patch("/api/v1/customer/" + customer.getCustomerId())
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(customerMap)))
-                        .andExpect(status().isNoContent());
+                        .andExpect(status().isOk());
 
 
         verify(customerService).patchCustomer(uuidArgumentCaptor.capture(), customerArgumentCaptor.capture());
         assertThat(uuidArgumentCaptor.getValue()).isEqualTo(customer.getCustomerId());
         assertThat(customerArgumentCaptor.getValue().getCustomerName()).isEqualTo(customerMap.get("customerName"));
-
-
     }
 
     @Test
@@ -104,6 +95,8 @@ class CustomerControllerTest {
     @Test
     void testUpdateCustomer() throws Exception {
         CustomerDTO customer = customerServiceImpl.findAll().get(0);
+
+        given(customerService.update(any(), any())).willReturn(Optional.of(customer));
 
         mockMvc.perform(put("/api/v1/customer/" + customer.getCustomerId())
                         .accept(MediaType.APPLICATION_JSON)
@@ -162,8 +155,6 @@ class CustomerControllerTest {
         verify(customerService).deleteById(uuidArgumentCaptor.capture());
         assertThat(uuidArgumentCaptor.getValue()).isEqualTo(customer.getCustomerId());
     }
-
-
 
 }
 

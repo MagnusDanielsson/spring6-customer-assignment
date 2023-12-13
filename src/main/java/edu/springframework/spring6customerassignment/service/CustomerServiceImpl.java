@@ -1,134 +1,112 @@
 package edu.springframework.spring6customerassignment.service;
 
 import edu.springframework.spring6customerassignment.entities.Customer;
+import edu.springframework.spring6customerassignment.exception.NotFoundException;
 import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
-import edu.springframework.spring6customerassignment.mappers.CustomerMapperImpl;
 import edu.springframework.spring6customerassignment.model.CustomerDTO;
-import edu.springframework.spring6customerassignment.repositories.CustomerRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.mapstruct.Mapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
 
+
 @Slf4j
-//@AllArgsConstructor
 @Service
 public class CustomerServiceImpl implements CustomerService{
-    CustomerRepository customerRepository;
-    CustomerMapper customerMapper;
 
-    public CustomerServiceImpl(CustomerRepository customerRepository, CustomerMapper customerMapper) {
-        this.customerRepository = customerRepository;
-        this.customerMapper = customerMapper;
+    HashMap<UUID, CustomerDTO> customers = new HashMap<>();
 
-        Customer customer1 = Customer.builder()
-                .customerName("John Doe")
-                .createdDate(LocalDateTime.now())
-                .lastModifiedDate(LocalDateTime.now())
-                .build();
+    public CustomerServiceImpl() {
+        CustomerDTO customer =
+                CustomerDTO.builder().
+                        customerId(UUID.randomUUID()).
+                        version(1).
+                        createdDate(LocalDateTime.now()).
+                        lastModifiedDate(LocalDateTime.now()).
+                        customerName("Magnus Danielsson").
+                        build();
 
-        Customer customer2 = Customer.builder()
-                .customerName("Donald Trump")
-                .createdDate(LocalDateTime.now())
-                .lastModifiedDate(LocalDateTime.now())
-                .build();
+        CustomerDTO customer2 =
+                CustomerDTO.builder().
+                        customerId(UUID.randomUUID()).
+                        version(1).
+                        createdDate(LocalDateTime.now()).
+                        lastModifiedDate(LocalDateTime.now()).
+                        customerName("Lukas Danielsson").
+                        build();
 
-        Customer customer3 = Customer.builder()
-                .customerName("Magnus Danielsson")
-                .createdDate(LocalDateTime.now())
-                .lastModifiedDate(LocalDateTime.now())
-                .build();
+        CustomerDTO customer3 =
+                CustomerDTO.builder().
+                        customerId(UUID.randomUUID()).
+                        version(1).
+                        createdDate(LocalDateTime.now()).
+                        lastModifiedDate(LocalDateTime.now()).
+                        customerName("Abel Danielsson").
+                        build();
 
-        Customer customer4 = Customer.builder()
-                .customerName("The King")
-                .createdDate(LocalDateTime.now())
-                .lastModifiedDate(LocalDateTime.now())
-                .build();
 
-        customer1= this.customerRepository.save(customer1);
-        log.info("Customer entity #1 " + customer1.getCustomerName());
-
-        customer2= this.customerRepository.save(customer2);
-        log.info("Customer entity #2 " + customer2.getCustomerName());
-
-        customer3= this.customerRepository.save(customer3);
-        log.info("Customer entity #3 " + customer3.getCustomerName());
-
-        customer4= this.customerRepository.save(customer4);
-        log.info("Customer entity #4 " + customer4.getCustomerName());
-
-        List<Customer> customerList = customerRepository.findAll();
-        customerList.forEach(c -> System.out.println("Customer name -> " + c.toString()));
+        customers.put(customer.getCustomerId(), customer);
+        customers.put(customer2.getCustomerId(), customer2);
+        customers.put(customer3.getCustomerId(), customer3);
+        customers.forEach((id,c) -> log.info("Id: " + id + ", name :" + c.getCustomerName()));
     }
 
     @Override
     public List<CustomerDTO> findAll() {
-        log.info("CustomerService: Getting all customers");
-        List<Customer> customerList = customerRepository.findAll();
-        List<CustomerDTO> customerDTOList = new ArrayList<>();
-        for (Customer c : customerList) {
-            customerDTOList.add(customerMapper.customerToCustomerDto(c));
-        }
-        return customerDTOList;
+       return new ArrayList<>(customers.values());
     }
 
     @Override
     public Optional<CustomerDTO> findById(UUID id) {
-        log.info("CustomerService: Getting customer by id: " + id);
-        Optional<Customer> customer = customerRepository.findById(id);
-        CustomerDTO customerDTO = customerMapper.customerToCustomerDto(customer.orElse(null));
-        return Optional.ofNullable(customerDTO);
+        CustomerDTO customer = customers.get(id);
+        return Optional.ofNullable(customer);
     }
 
     @Override
     public CustomerDTO save(CustomerDTO customerDto) {
-        CustomerDTO newCustomerDto = CustomerDTO.builder()
+        CustomerDTO newCustomer = CustomerDTO.builder()
                 .customerName(customerDto.getCustomerName())
+                .customerId(UUID.randomUUID())
+                .version(1)
                 .createdDate(LocalDateTime.now())
                 .lastModifiedDate(LocalDateTime.now())
                 .build();
 
-        Customer customer = customerMapper.customerDtoToCustomer(newCustomerDto);
-
-        Customer persistedCustomer = customerRepository.save(customer);
-        log.info("CustomerService: Persisted customer: " + persistedCustomer);
-
-        newCustomerDto = customerMapper.customerToCustomerDto(persistedCustomer);
-        return newCustomerDto;
+        log.info("CustomerService: Saving customer: " + newCustomer);
+        return customers.put(newCustomer.getCustomerId(), newCustomer);
     }
 
     @Override
-    public void update(UUID uuid, CustomerDTO customerDto) {
-        Optional<Customer> existing = customerRepository.findById(uuid);
-        Customer existingCustomer = existing.get();
-        existingCustomer.setCustomerName(customerDto.getCustomerName());
-        existingCustomer.setLastModifiedDate(LocalDateTime.now());
-        existingCustomer = customerRepository.save(existingCustomer);
-        log.info("CustomerService: Updating customer: " + existingCustomer);
+    public Optional<CustomerDTO> update(UUID uuid, CustomerDTO customerDto) {
+        Optional<CustomerDTO> existing = Optional.ofNullable(customers.get(uuid));
+        existing.ifPresent(foundCustomer -> {
+            foundCustomer.setCustomerName(customerDto.getCustomerName());
+            foundCustomer.setLastModifiedDate(LocalDateTime.now());
+            log.info("CustomerServiceImpl: Updating customer: " + foundCustomer);
+        });
+
+        return existing;
     }
 
     @Override
     public void deleteById(UUID uuid) {
-        customerRepository.deleteById(uuid);
-        log.info("CustomerService: Deleting customer");
+        CustomerDTO customer = customers.remove(uuid);
+        log.info("CustomerServiceImpl: Deleting customer: " + customer);
     }
 
     @Override
-    public void patchCustomer(UUID customerId, CustomerDTO customer) {
-        Optional<Customer> existing = customerRepository.findById(customerId);
-        Customer existingCustomer = existing.get();
-
-        if(StringUtils.hasText(customer.getCustomerName())){
-           existingCustomer.setCustomerName(customer.getCustomerName());
-           existingCustomer.setLastModifiedDate(LocalDateTime.now());
-           existingCustomer = customerRepository.save(existingCustomer);
-           log.info("Updated customer: " + existingCustomer);
-        }
-
+    public Optional<CustomerDTO> patchCustomer(UUID customerId, CustomerDTO customerDto) {
+        Optional<CustomerDTO> existing = Optional.ofNullable(customers.get(customerId));
+        existing.ifPresent(foundCustomer -> {
+            if(StringUtils.hasText(customerDto.getCustomerName())) {
+                foundCustomer.setCustomerName(customerDto.getCustomerName());
+                foundCustomer.setLastModifiedDate(LocalDateTime.now());
+            }
+        });
+        return existing;
     }
 
 }
