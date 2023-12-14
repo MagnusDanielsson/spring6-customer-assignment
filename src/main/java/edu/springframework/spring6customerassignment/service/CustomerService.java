@@ -9,13 +9,8 @@ import java.util.UUID;
 public interface CustomerService {
     List<CustomerDTO> findAll();
     Optional<CustomerDTO> findById(UUID id);
-
     CustomerDTO save(CustomerDTO customer);
-
     Optional<CustomerDTO> update(UUID uuid, CustomerDTO customer);
-
-    void deleteById(UUID uuid);
-
     Optional<CustomerDTO> patchCustomer(UUID customerId, CustomerDTO customer);
-
+    Boolean deleteById(UUID uuid);
 }

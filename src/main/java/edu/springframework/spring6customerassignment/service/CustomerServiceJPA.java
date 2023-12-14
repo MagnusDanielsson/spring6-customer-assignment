@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Slf4j
 @AllArgsConstructor
@@ -31,21 +32,20 @@ public class CustomerServiceJPA implements CustomerService{
     @Override
     public List<CustomerDTO> findAll() {
         log.info("CustomerServiceJPA: Getting all customers");
-        List<Customer> customerList = customerRepository.findAll();
-        List<CustomerDTO> customerDTOList = new ArrayList<>();
-        for (Customer c : customerList) {
-            customerDTOList.add(customerMapper.customerToCustomerDto(c));
-        }
-        return customerDTOList;
+        return customerRepository.findAll().stream().map(customerMapper::customerToCustomerDto).toList();
     }
 
     @Override
     public Optional<CustomerDTO> findById(UUID id) {
         log.info("CustomerServiceJPA: Getting customer by id: " + id);
-
+        AtomicReference<Optional<CustomerDTO>> atomicReference = new AtomicReference<>();
         Optional<Customer> customer = customerRepository.findById(id);
-        CustomerDTO customerDTO = customerMapper.customerToCustomerDto(customer.orElseThrow(NotFoundException::new));
-        return Optional.of(customerDTO);
+
+        customer.ifPresentOrElse(foundCustomer -> {
+            atomicReference.set(Optional.of(customerMapper.customerToCustomerDto(foundCustomer)));
+        }, () -> {atomicReference.set(Optional.empty());});
+
+        return atomicReference.get();
     }
 
     @Override
@@ -68,19 +68,26 @@ public class CustomerServiceJPA implements CustomerService{
 
         // Check if present and update
         existing.ifPresentOrElse(foundCustomer -> {
+            log.info("CustomerServiceJPA: Updating customer: " + foundCustomer);
+
             foundCustomer.setCustomerName(customerDto.getCustomerName());
             foundCustomer.setLastModifiedDate(LocalDateTime.now());
-            log.info("CustomerServiceJPA: Updating customer: " + foundCustomer);
-            response.set(Optional.of(customerMapper.customerToCustomerDto(foundCustomer)));
+
+            Customer persistedCustomer = customerRepository.save(foundCustomer);
+            response.set(Optional.of(customerMapper.customerToCustomerDto(persistedCustomer)));
         }, () -> { response.set(Optional.empty());});
 
         return response.get();
     }
 
     @Override
-    public void deleteById(UUID uuid) {
-        customerRepository.deleteById(uuid);
+    public Boolean deleteById(UUID uuid) {
         log.info("CustomerServiceJPA: Deleting customer");
+        if(customerRepository.existsById(uuid)) {
+            customerRepository.deleteById(uuid);
+            return Boolean.TRUE;
+        }
+        return Boolean.FALSE;
     }
 
     @Override
@@ -90,10 +97,12 @@ public class CustomerServiceJPA implements CustomerService{
 
         // Check if present and patch
         existing.ifPresentOrElse(foundCustomer -> {
+            log.info("CustomerServiceJPA: Patch customer " + foundCustomer);
+
             foundCustomer.setCustomerName(customer.getCustomerName());
             foundCustomer.setLastModifiedDate(LocalDateTime.now());
+
             customerRepository.save(foundCustomer);
-            log.info("CustomerServiceJPA: Patch customer " + foundCustomer);
             response.set(Optional.of(customerMapper.customerToCustomerDto(foundCustomer)));
         }, () -> {
             response.set(Optional.empty());

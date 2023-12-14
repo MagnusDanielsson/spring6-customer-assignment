@@ -61,8 +61,7 @@ public class CustomerServiceImpl implements CustomerService{
 
     @Override
     public Optional<CustomerDTO> findById(UUID id) {
-        CustomerDTO customer = customers.get(id);
-        return Optional.ofNullable(customer);
+        return Optional.ofNullable(customers.get(id));
     }
 
     @Override
@@ -82,31 +81,29 @@ public class CustomerServiceImpl implements CustomerService{
     @Override
     public Optional<CustomerDTO> update(UUID uuid, CustomerDTO customerDto) {
         Optional<CustomerDTO> existing = Optional.ofNullable(customers.get(uuid));
-        existing.ifPresent(foundCustomer -> {
-            foundCustomer.setCustomerName(customerDto.getCustomerName());
-            foundCustomer.setLastModifiedDate(LocalDateTime.now());
-            log.info("CustomerServiceImpl: Updating customer: " + foundCustomer);
+        existing.ifPresent(existingCustomer -> {
+            existingCustomer.setCustomerName(customerDto.getCustomerName());
+            existingCustomer.setLastModifiedDate(LocalDateTime.now());
+            log.info("CustomerServiceImpl: Updating customer: " + existingCustomer);
         });
 
         return existing;
     }
-
-    @Override
-    public void deleteById(UUID uuid) {
-        CustomerDTO customer = customers.remove(uuid);
-        log.info("CustomerServiceImpl: Deleting customer: " + customer);
-    }
-
     @Override
     public Optional<CustomerDTO> patchCustomer(UUID customerId, CustomerDTO customerDto) {
         Optional<CustomerDTO> existing = Optional.ofNullable(customers.get(customerId));
-        existing.ifPresent(foundCustomer -> {
+        existing.ifPresent(existingCustomer -> {
             if(StringUtils.hasText(customerDto.getCustomerName())) {
-                foundCustomer.setCustomerName(customerDto.getCustomerName());
-                foundCustomer.setLastModifiedDate(LocalDateTime.now());
+                existingCustomer.setCustomerName(customerDto.getCustomerName());
+                existingCustomer.setLastModifiedDate(LocalDateTime.now());
+                log.info("CustomerServiceImpl: Patching customer: " + existingCustomer);
             }
         });
         return existing;
     }
-
+    @Override
+    public Boolean deleteById(UUID customerId) {
+        customers.remove(customerId);
+        return Boolean.TRUE;
+    }
 }

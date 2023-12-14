@@ -34,10 +34,13 @@ public class CustomerController {
     @GetMapping(path = CUSTOMER_PATH_ID)
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable("customerId") UUID customerId) {
         log.info("CustomerController: Getting customer by id: " + customerId);
-        CustomerDTO existing = customerService.findById(customerId).orElseThrow(NotFoundException::new);
+        Optional<CustomerDTO> existing = customerService.findById(customerId);
+        if(existing.isEmpty()) {
+            throw new NotFoundException();
+        }
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Location", "/api/v1/customer/" + existing.getCustomerId());
-        return new ResponseEntity<>(existing, headers, HttpStatus.OK);
+        headers.add("Location", "/api/v1/customer/" + existing.get().getCustomerId());
+        return new ResponseEntity<>(existing.get(), headers, HttpStatus.OK);
     }
 
     @PostMapping(path = CUSTOMER_PATH)
@@ -79,10 +82,12 @@ public class CustomerController {
     }
 
     @DeleteMapping(path = CUSTOMER_PATH_ID)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCustomerById(@PathVariable("customerId") UUID customerId) {
+    public ResponseEntity deleteCustomerById(@PathVariable("customerId") UUID customerId) {
         log.info("CustomerController: Deleting customer by id: " + customerId);
-        customerService.deleteById(customerId);
+        if( !customerService.deleteById(customerId)) {
+            throw new NotFoundException();
+        }
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 
 }
