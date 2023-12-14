@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -44,7 +45,7 @@ public class CustomerController {
     }
 
     @PostMapping(path = CUSTOMER_PATH)
-    public ResponseEntity<CustomerDTO> createCustomer(@RequestBody CustomerDTO customer) {
+    public ResponseEntity<CustomerDTO> createCustomer(@Validated @RequestBody CustomerDTO customer) {
         log.info("CustomerController: Creating customer: " + customer);
         CustomerDTO savedCustomer = customerService.save(customer);
 

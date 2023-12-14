@@ -1,5 +1,6 @@
 package edu.springframework.spring6customerassignment.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.springframework.spring6customerassignment.entities.Customer;
 import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.HashMap;
 import java.util.Optional;
@@ -90,6 +92,23 @@ class CustomerControllerTest {
         CustomerDTO captorValue = customerArgumentCaptor.getValue();
         assertThat(captorValue.getCustomerId()).isNull();
         assertThat(captorValue.getVersion()).isNull();
+    }
+
+
+    @Test
+    void testCreateCustomerNameIsNull() throws Exception {
+        CustomerDTO customerDto = CustomerDTO.builder().build();
+
+        given(customerService.save(any(CustomerDTO.class))).willReturn(customerServiceImpl.findAll().get(1));
+
+        MvcResult mvcResult = mockMvc.perform(post("/api/v1/customer")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(customerDto)))
+                        .andExpect(status().isBadRequest()).andReturn();
+
+        System.out.println(mvcResult.getResponse().getContentAsString());
+
     }
 
     @Test
