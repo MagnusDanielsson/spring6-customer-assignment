@@ -1,5 +1,6 @@
 package edu.springframework.spring6customerassignment.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.springframework.spring6customerassignment.entities.Customer;
 import edu.springframework.spring6customerassignment.exception.NotFoundException;
 import edu.springframework.spring6customerassignment.mappers.CustomerMapper;
@@ -7,21 +8,35 @@ import edu.springframework.spring6customerassignment.model.CustomerDTO;
 import edu.springframework.spring6customerassignment.repositories.CustomerRepository;
 import jakarta.transaction.Transactional;
 import lombok.Builder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MockMvcBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 class CustomerControllerIntegrationTest {
@@ -34,6 +49,19 @@ class CustomerControllerIntegrationTest {
 
     @Autowired
     CustomerMapper customerMapper;
+
+    @Autowired
+    WebApplicationContext wac;
+
+    @Autowired
+    ObjectMapper objectMapper;
+
+    MockMvc mockMvc;
+
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+    }
 
     @Test
     void getAllCustomersTest() {
@@ -104,6 +132,22 @@ class CustomerControllerIntegrationTest {
     void patchCustomerNotFoundTest() {
         CustomerDTO dummy = CustomerDTO.builder().build();
         assertThrows(NotFoundException.class, () -> customerController.patchCustomer(UUID.randomUUID(), dummy));
+    }
+
+    @Test
+    void testPatchCustomerBadRequest() throws Exception {
+        Customer customer = customerRepository.findAll().get(0);
+
+        HashMap<String, String> customerMap = new HashMap<>();
+        customerMap.put("customerName", "Carl Michael Bellman ladaöllwjd oadjkfaäjfda pakdakd aälksdakjd aokdoa ldkd");
+
+        mockMvc.perform(patch("/api/v1/customer/" + customer.getCustomerId())
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(customerMap)))
+                        .andExpect(jsonPath("$.size()", is(1)))
+                        .andExpect(status().isBadRequest());
+
     }
 
 }

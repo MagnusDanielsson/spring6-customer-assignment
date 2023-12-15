@@ -53,6 +53,41 @@ class CustomerControllerTest {
     }
 
     @Test
+    void getAllCustomers() throws Exception {
+
+        given(customerService.findAll()).willReturn(customerServiceImpl.findAll());
+
+        mockMvc.perform(get(CustomerController.CUSTOMER_PATH)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.size()", is(customerServiceImpl.findAll().size())))
+                .andExpect(jsonPath("$[0].customerId", is(customerServiceImpl.findAll().get(0).getCustomerId().toString())))
+                .andExpect(jsonPath("$[0].customerName", is(customerServiceImpl.findAll().get(0).getCustomerName())))
+                .andExpect(jsonPath("$[1].customerId", is(customerServiceImpl.findAll().get(1).getCustomerId().toString())))
+                .andExpect(jsonPath("$[1].customerName", is(customerServiceImpl.findAll().get(1).getCustomerName())));
+
+    }
+
+    @Test
+    void getCustomerById() throws Exception {
+
+        CustomerDTO customer = customerServiceImpl.findAll().get(0);
+
+        given(customerService.findById(customer.getCustomerId())).willReturn(Optional.of(customer));
+
+        mockMvc.perform(get("/api/v1/customer/" + customer.getCustomerId())
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.customerId", is(customer.getCustomerId().toString())))
+                .andExpect(jsonPath("$.customerName", is(customer.getCustomerName())));
+
+        verify(customerService).findById(uuidArgumentCaptor.capture());
+        assertThat(uuidArgumentCaptor.getValue()).isEqualTo(customer.getCustomerId());
+    }
+
+    @Test
     void testPatchCustomer() throws Exception {
         CustomerDTO customer = customerServiceImpl.findAll().get(0);
 
@@ -105,6 +140,7 @@ class CustomerControllerTest {
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(customerDto)))
+                        .andExpect(jsonPath("$.size()", is(2)))
                         .andExpect(status().isBadRequest()).andReturn();
 
         System.out.println(mvcResult.getResponse().getContentAsString());
@@ -127,40 +163,6 @@ class CustomerControllerTest {
 
     }
 
-    @Test
-    void getAllCustomers() throws Exception {
-
-        given(customerService.findAll()).willReturn(customerServiceImpl.findAll());
-
-        mockMvc.perform(get(CustomerController.CUSTOMER_PATH)
-                .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.size()", is(customerServiceImpl.findAll().size())))
-                .andExpect(jsonPath("$[0].customerId", is(customerServiceImpl.findAll().get(0).getCustomerId().toString())))
-                .andExpect(jsonPath("$[0].customerName", is(customerServiceImpl.findAll().get(0).getCustomerName())))
-                .andExpect(jsonPath("$[1].customerId", is(customerServiceImpl.findAll().get(1).getCustomerId().toString())))
-                .andExpect(jsonPath("$[1].customerName", is(customerServiceImpl.findAll().get(1).getCustomerName())));
-
-    }
-
-    @Test
-    void getCustomerById() throws Exception {
-
-        CustomerDTO customer = customerServiceImpl.findAll().get(0);
-
-        given(customerService.findById(customer.getCustomerId())).willReturn(Optional.of(customer));
-
-        mockMvc.perform(get("/api/v1/customer/" + customer.getCustomerId())
-                .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.customerId", is(customer.getCustomerId().toString())))
-                .andExpect(jsonPath("$.customerName", is(customer.getCustomerName())));
-
-        verify(customerService).findById(uuidArgumentCaptor.capture());
-        assertThat(uuidArgumentCaptor.getValue()).isEqualTo(customer.getCustomerId());
-    }
 
     @Test
     void testDeleteCustomer() throws Exception {
