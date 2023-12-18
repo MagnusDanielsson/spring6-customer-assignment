@@ -29,7 +29,6 @@ public class CustomErrorController {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity handleErrors(MethodArgumentNotValidException exception) {
-
         List errorList =
             exception.getFieldErrors().stream().
                 map(fieldError -> {

@@ -148,6 +148,7 @@ class CustomerControllerIntegrationTest {
                         .andExpect(jsonPath("$.size()", is(1)))
                         .andExpect(status().isBadRequest());
 
+
     }
 
 }
