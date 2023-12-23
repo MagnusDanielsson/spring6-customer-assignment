@@ -11,10 +11,11 @@ import java.util.UUID;
 @Data
 public class CustomerDTO {
 
+    private UUID customerId;
     @NotNull
     @NotBlank
     private String customerName;
-    private UUID customerId;
+
     private Integer version;
     private LocalDateTime createdDate;
     private LocalDateTime lastModifiedDate;

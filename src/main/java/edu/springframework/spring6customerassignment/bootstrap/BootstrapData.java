@@ -16,7 +16,7 @@ import java.util.List;
 @Slf4j
 @AllArgsConstructor
 @Component
-@Profile(value = {"default", "dev"})
+//@Profile(value = {"default", "dev"})
 public class BootstrapData implements CommandLineRunner {
     CustomerRepository customerRepository;
 
